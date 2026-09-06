@@ -1,74 +1,151 @@
 package preprocess;
 
 import model.UserRecord;
+
 import java.util.ArrayList;
+import java.util.List;
 
 public class PreProcessor {
-    
-    // 
-    // Min/Max sınırlarını hafızada tutuyoruz.
-    public static double minHarcama = Double.MAX_VALUE;
-    public static double maxHarcama = Double.MIN_VALUE;
-    public static double minMarka = Double.MAX_VALUE;
-    public static double maxMarka = Double.MIN_VALUE;
 
-    
-    // Eksik, boş olan satırları ayıklrız
-    public static ArrayList<UserRecord> veriyiTemizle(ArrayList<UserRecord> veriListesi) {
+    private double minHarcama;
+    private double maxHarcama;
+    private boolean fitted = false;
+
+    /*
+     * Dataset seviyesinde temel veri temizleme.
+     *
+     * Bu aşama hedef veya test istatistiklerini kullanmadığı için
+     * train/test split öncesinde uygulanabilir.
+     */
+    public static ArrayList<UserRecord> veriyiTemizle(
+            ArrayList<UserRecord> veriListesi
+    ) {
+
         ArrayList<UserRecord> temizListe = new ArrayList<>();
 
         for (UserRecord u : veriListesi) {
-            // Null veya boş metin kontrolü
-            if (u.getClientCode() == null || u.getCategory() == null) continue;
-            if (u.getClientCode().trim().isEmpty() || u.getCategory().trim().isEmpty()) continue;
 
-            // Cinisyet kontrolü.0 ve 1 den başka deger kabul edilmez
-            if (u.getGender() != 0 && u.getGender() != 1) continue;
+            if (u.getClientCode() == null
+                    || u.getCategory() == null
+                    || u.getBrand() == null) {
+                continue;
+            }
 
-            // Fiyat ve Marka kodu kontrolü
-            if (u.getLineNetTotal() <= 0) continue;
-            if (u.getBrandCode() < 0) continue; 
+            if (u.getClientCode().trim().isEmpty()
+                    || u.getCategory().trim().isEmpty()
+                    || u.getBrand().trim().isEmpty()) {
+                continue;
+            }
 
-            // Temiz veriyi listeye ekleriz
+            if (u.getGender() != 0 && u.getGender() != 1) {
+                continue;
+            }
+
+            if (u.getLineNetTotal() <= 0) {
+                continue;
+            }
+
             temizListe.add(u);
         }
 
         return temizListe;
     }
 
-    //NORMALİZASYON kısmı
-    public static void veriyiNormallestir(ArrayList<UserRecord> veriListesi) {
+    /*
+     * Normalizasyon parametrelerini SADECE eğitim verisinden öğrenir.
+     *
+     * Böylece test setinin min/max bilgileri preprocessing aşamasına
+     * sızmaz ve data leakage engellenir.
+     */
+    public void fit(List<UserRecord> egitimVerisi) {
 
-        if (veriListesi.isEmpty()) return;
+        if (egitimVerisi == null || egitimVerisi.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "PreProcessor boş eğitim verisiyle fit edilemez."
+            );
+        }
 
-        // Method çalıştığında eski min/max değerlerini sıfırlarız
         minHarcama = Double.MAX_VALUE;
-        maxHarcama = Double.MIN_VALUE;
-        minMarka = Double.MAX_VALUE;
-        maxMarka = Double.MIN_VALUE;
+        maxHarcama = -Double.MAX_VALUE;
 
-        //  listeyi gezip en büyük ve en küçük değerleri tespit ederiz
-        for (UserRecord u : veriListesi) {
-            if (u.getLineNetTotal() < minHarcama) minHarcama = u.getLineNetTotal();
-            if (u.getLineNetTotal() > maxHarcama) maxHarcama = u.getLineNetTotal();
-            if (u.getBrandCode() < minMarka) minMarka = u.getBrandCode();
-            if (u.getBrandCode() > maxMarka) maxMarka = u.getBrandCode();
-        }
+        for (UserRecord u : egitimVerisi) {
 
-        //  Formül (x - min) / (max - min)
-        for (UserRecord u : veriListesi) {
-            
-            // Fiyat için 0-1 dönüşümü yapar ve kaydederiz
-            if (maxHarcama != minHarcama) {
-                double normallestirilmisFiyat = (u.getLineNetTotal() - minHarcama) / (maxHarcama - minHarcama);
-                u.setLineNetTotal(normallestirilmisFiyat);
+            if (u.getLineNetTotal() < minHarcama) {
+                minHarcama = u.getLineNetTotal();
             }
 
-            // Marka Kodu için 0-1 dönüşümü yapar ve kaydederiz.
-            if (maxMarka != minMarka) {
-                double normallestirilmisMarka = (u.getBrandCode() - minMarka) / (maxMarka - minMarka);
-                u.setBrandCode(normallestirilmisMarka); 
+            if (u.getLineNetTotal() > maxHarcama) {
+                maxHarcama = u.getLineNetTotal();
             }
         }
+
+        fitted = true;
+    }
+
+    /*
+     * Daha önce eğitim setinden öğrenilmiş min/max değerlerini kullanarak
+     * verilen listeyi dönüştürür.
+     *
+     * Orijinal nesneleri değiştirmek yerine yeni UserRecord nesneleri
+     * oluşturulur. Böylece tekrar model çalıştırıldığında veri ikinci kez
+     * normalize edilmez.
+     */
+    public ArrayList<UserRecord> transform(
+            List<UserRecord> veriListesi
+    ) {
+
+        if (!fitted) {
+            throw new IllegalStateException(
+                    "PreProcessor önce eğitim verisiyle fit edilmelidir."
+            );
+        }
+
+        ArrayList<UserRecord> sonuc = new ArrayList<>();
+
+        for (UserRecord u : veriListesi) {
+
+            double normalizeHarcama =
+                    harcamayiNormallestir(u.getLineNetTotal());
+
+            sonuc.add(
+                    new UserRecord(
+                            u.getClientCode(),
+                            u.getGender(),
+                            normalizeHarcama,
+                            u.getBrand(),
+                            u.getCategory()
+                    )
+            );
+        }
+
+        return sonuc;
+    }
+
+    /*
+     * Manuel tahminde girilen ham harcama değerini de eğitim setinde
+     * öğrenilen min/max değerleri ile normalize eder.
+     */
+    public double harcamayiNormallestir(double hamHarcama) {
+
+        if (!fitted) {
+            throw new IllegalStateException(
+                    "PreProcessor henüz fit edilmedi."
+            );
+        }
+
+        if (maxHarcama == minHarcama) {
+            return 0.0;
+        }
+
+        return (hamHarcama - minHarcama)
+                / (maxHarcama - minHarcama);
+    }
+
+    public double getMinHarcama() {
+        return minHarcama;
+    }
+
+    public double getMaxHarcama() {
+        return maxHarcama;
     }
 }

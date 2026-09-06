@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 // Arayuz elemanlarını barındıran ana pencere sınıfımız
 public class MainGui extends JFrame {
@@ -36,7 +37,8 @@ public class MainGui extends JFrame {
     private CubukGrafikPaneli grafikPaneli;
 
     // Manuel tahmin ve hata matrisi bileşenleri
-    private IClassifier mevcutEgitilmisModel; // O an hafızada olan model
+    private IClassifier mevcutEgitilmisModel;
+    private PreProcessor mevcutPreProcessor;
     private JComboBox<String> kutuCinsiyet;
     private JTextField metinManuelHarcama, metinManuelMarka;
     private JLabel etiketManuelSonuc;
@@ -186,7 +188,8 @@ public class MainGui extends JFrame {
         try {
             ArrayList<UserRecord> hamVeri = DataYukle.veriYukle(dosyaYolu);
             tumTemizVeri = PreProcessor.veriyiTemizle(hamVeri);
-            PreProcessor.veriyiNormallestir(tumTemizVeri);
+            mevcutPreProcessor = null;
+            mevcutEgitilmisModel = null;
 
             if(tumTemizVeri.isEmpty()) {
                 throw new Exception("Veri seti boş veya format hatalı!");
@@ -204,7 +207,6 @@ public class MainGui extends JFrame {
         try {
             ArrayList<UserRecord> hamVeri = DataYukle.veriYukle(dosyaYolu);
             tumTemizVeri = PreProcessor.veriyiTemizle(hamVeri);
-            PreProcessor.veriyiNormallestir(tumTemizVeri);
         } catch (Exception ex) {
             System.out.println("Varsayılan dosya bulunamadı, manuel yükleme bekleniyor.");
         }
@@ -221,11 +223,11 @@ public class MainGui extends JFrame {
         kutuCinsiyet = new JComboBox<>(new String[]{"Kadın", "Erkek"});
         manuelPanel.add(kutuCinsiyet);
 
-        manuelPanel.add(new JLabel("Harcama Tutarı (Normalize/Ham):"));
+        manuelPanel.add(new JLabel("Harcama Tutarı (Ham):"));
         metinManuelHarcama = new JTextField();
         manuelPanel.add(metinManuelHarcama);
 
-        manuelPanel.add(new JLabel("Marka Kodu (Normalize/Ham):"));
+        manuelPanel.add(new JLabel("Marka Kodu:"));
         metinManuelMarka = new JTextField();
         manuelPanel.add(metinManuelMarka);
 
@@ -261,12 +263,60 @@ public class MainGui extends JFrame {
             int parametre = Integer.parseInt(metinParametre.getText().trim());
             int egitimYuzdesi = sliderVeriOrani.getValue(); 
 
-            // Verileri rastgele karıştırır ve 2ye böleriz.eğitim test oranı için
-            Collections.shuffle(tumTemizVeri); 
-            int bolmeIndeksi = (int) (tumTemizVeri.size() * (egitimYuzdesi / 100.0));
-            
-            List<UserRecord> egitimVerisi = tumTemizVeri.subList(0, bolmeIndeksi);
-            List<UserRecord> testVerisi = tumTemizVeri.subList(bolmeIndeksi, tumTemizVeri.size());
+            /*
+        * Orijinal temiz dataset değiştirilmez.
+        *
+        * Sabit seed kullanılması KNN ve Decision Tree karşılaştırmalarında
+        * aynı train/test split'in tekrar üretilebilmesini sağlar.
+        */
+        ArrayList<UserRecord> karistirilmisVeri =
+                new ArrayList<>(tumTemizVeri);
+
+        Collections.shuffle(
+                karistirilmisVeri,
+                new Random(42)
+        );
+
+        int bolmeIndeksi =
+                (int) (
+                        karistirilmisVeri.size()
+                        *
+                        (egitimYuzdesi / 100.0)
+                );
+
+        List<UserRecord> egitimHam =
+                new ArrayList<>(
+                        karistirilmisVeri.subList(
+                                0,
+                                bolmeIndeksi
+                        )
+                );
+
+        List<UserRecord> testHam =
+                new ArrayList<>(
+                        karistirilmisVeri.subList(
+                                bolmeIndeksi,
+                                karistirilmisVeri.size()
+                        )
+                );
+
+        /*
+        * Preprocessing parametreleri yalnızca training setinden öğrenilir.
+        */
+        PreProcessor preProcessor =
+                new PreProcessor();
+
+        preProcessor.fit(egitimHam);
+
+        List<UserRecord> egitimVerisi =
+                preProcessor.transform(
+                        egitimHam
+                );
+
+        List<UserRecord> testVerisi =
+                preProcessor.transform(
+                        testHam
+                );
 
             IClassifier model;
             String modelAdi;
@@ -326,6 +376,7 @@ public class MainGui extends JFrame {
 
             // Arayüzü dışarıdan tahmin yapmak için aktifleştir
             mevcutEgitilmisModel = model;
+            mevcutPreProcessor = preProcessor;
             butonManuelTahmin.setEnabled(true);
             butonMatrisGoster.setEnabled(true);
 
@@ -335,34 +386,80 @@ public class MainGui extends JFrame {
     }
 
     // Manuel Tahmin kısmı(Dısarıdan veri girip canlı tahmin yaparız)
+
     private void manuelTahminYap() {
-        try {
-            int cinsiyet = kutuCinsiyet.getSelectedIndex(); 
-            double hamHarcama = Double.parseDouble(metinManuelHarcama.getText());
-            double hamMarka = Double.parseDouble(metinManuelMarka.getText());
 
-            // Elle girilen harcamayı normalize ederiz
-            double harcama = hamHarcama;
-            if (PreProcessor.maxHarcama != PreProcessor.minHarcama) {
-                harcama = (hamHarcama - PreProcessor.minHarcama) / (PreProcessor.maxHarcama - PreProcessor.minHarcama);
-            }
+    try {
 
-            // Elle girilen markayı algoritmaya uygun hale getiririz
-            double marka = hamMarka;
-            if (PreProcessor.maxMarka != PreProcessor.minMarka) {
-                marka = (hamMarka - PreProcessor.minMarka) / (PreProcessor.maxMarka - PreProcessor.minMarka);
-            }
+        if (mevcutEgitilmisModel == null
+                || mevcutPreProcessor == null) {
 
-            
-            UserRecord manuelMusteri = new UserRecord("MANUAL", cinsiyet, harcama, marka, "");
-            
-            String sonuc = mevcutEgitilmisModel.predict(manuelMusteri);
-            etiketManuelSonuc.setText("Sonuç: " + sonuc);
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Geçerli sayısal değerler giriniz!", "Hata", JOptionPane.WARNING_MESSAGE);
+            throw new IllegalStateException(
+                    "Önce bir model eğitilmelidir."
+            );
         }
+
+        int cinsiyet =
+                kutuCinsiyet.getSelectedIndex();
+
+        double hamHarcama =
+                Double.parseDouble(
+                        metinManuelHarcama
+                                .getText()
+                                .trim()
+                );
+
+        String marka =
+                metinManuelMarka
+                        .getText()
+                        .trim();
+
+        if (marka.isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Marka boş bırakılamaz."
+            );
+        }
+
+        /*
+         * Manuel veri de yalnızca training setinden öğrenilen
+         * min/max değerleri kullanılarak normalize edilir.
+         */
+        double normalizeHarcama =
+                mevcutPreProcessor
+                        .harcamayiNormallestir(
+                                hamHarcama
+                        );
+
+        UserRecord manuelMusteri =
+                new UserRecord(
+                        "MANUAL",
+                        cinsiyet,
+                        normalizeHarcama,
+                        marka,
+                        ""
+                );
+
+        String sonuc =
+                mevcutEgitilmisModel
+                        .predict(
+                                manuelMusteri
+                        );
+
+        etiketManuelSonuc.setText(
+                "Sonuç: " + sonuc
+        );
+
+    } catch (Exception ex) {
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Geçerli bir harcama tutarı ve marka giriniz!",
+                "Hata",
+                JOptionPane.WARNING_MESSAGE
+        );
     }
+}
 
     // Hata matrisi gösterimi
     // Algoritmanın hangi kategoriyi neyle karıştırdığını tablo olarak sunarız

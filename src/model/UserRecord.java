@@ -1,31 +1,28 @@
 package model;
 
-// her bir satırı temsil eden nesne classımız
+// Veri setindeki tek bir müşteri/satış kaydını temsil eder.
 public class UserRecord {
-    
-    
-    // Güvenlik için değişkenleri private tanımlarız
-    private String clientCode;
-    private int gender;           // cinsiyet encoding
-    private double lineNetTotal;  // Toplam harcama
-    
-    
-    private double brandCode;     
-    
-    private String category;      
 
-    
-    // Constructer sayesinde yeni bi müşteri oluştugunda veri setinden içine verileri okuruz
-    public UserRecord(String clientCode, int gender, double lineNetTotal, double brandCode, String category) {
+    private String clientCode;
+    private int gender;
+    private double lineNetTotal;
+    private String brand;
+    private String category;
+
+    public UserRecord(
+            String clientCode,
+            int gender,
+            double lineNetTotal,
+            String brand,
+            String category
+    ) {
         this.clientCode = clientCode;
         this.gender = gender;
         this.lineNetTotal = lineNetTotal;
-        this.brandCode = brandCode;
+        this.brand = brand;
         this.category = category;
     }
 
-    
-    //GETTER methodlar dışardan veri okumak için
     public String getClientCode() {
         return clientCode;
     }
@@ -38,33 +35,25 @@ public class UserRecord {
         return lineNetTotal;
     }
 
-    public double getBrandCode() {
-        return brandCode;
+    public String getBrand() {
+        return brand;
     }
 
     public String getCategory() {
         return category;
     }
 
-    //Setter methodlar .PreProcessor classında verileri değiştirebilmek için
-    
     public void setLineNetTotal(double lineNetTotal) {
         this.lineNetTotal = lineNetTotal;
     }
 
-    public void setBrandCode(double brandCode) {
-        this.brandCode = brandCode;
-    }
-
-    
-    // Verileri okunaklı bi hale getiriyoruz
     @Override
     public String toString() {
         return "UserRecord{" +
                 "clientCode='" + clientCode + '\'' +
                 ", gender=" + gender +
-                ", lineNetTotal=" + String.format("%.4f", lineNetTotal) + // Sayıların virgülden sonraki kısmını kırparız
-                ", brandCode=" + String.format("%.4f", brandCode) +
+                ", lineNetTotal=" + String.format("%.4f", lineNetTotal) +
+                ", brand='" + brand + '\'' +
                 ", category='" + category + '\'' +
                 '}';
     }
