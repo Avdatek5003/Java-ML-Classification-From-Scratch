@@ -6,6 +6,7 @@ import classifier.KNNClassifier;
 import data.DataYukle;
 import model.UserRecord;
 import preprocess.PreProcessor;
+import evaluation.Evaluator;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -133,7 +134,17 @@ public class MainGui extends JFrame {
         add(baslikPaneli, BorderLayout.NORTH);
 
         // Sonuc Tablosu
-        String[] kolonlar = {"Model", "Parametre", "Train %", "Eğitim Süresi", "Tahmin Süresi", "Doğruluk (%)"};
+        String[] kolonlar = {
+            "Model",
+            "Parametre",
+            "Train %",
+            "Eğitim Süresi",
+            "Tahmin Süresi",
+            "Accuracy (%)",
+            "Macro Precision (%)",
+            "Macro Recall (%)",
+            "Macro F1 (%)"
+        };
         tabloModeli = new DefaultTableModel(kolonlar, 0);
         tabloSonuclar = new JTable(tabloModeli);
         JScrollPane tabloKaydirma = new JScrollPane(tabloSonuclar);
@@ -227,7 +238,7 @@ public class MainGui extends JFrame {
         metinManuelHarcama = new JTextField();
         manuelPanel.add(metinManuelHarcama);
 
-        manuelPanel.add(new JLabel("Marka Kodu:"));
+        manuelPanel.add(new JLabel("Marka:"));
         metinManuelMarka = new JTextField();
         manuelPanel.add(metinManuelMarka);
 
@@ -358,14 +369,41 @@ public class MainGui extends JFrame {
             // Başarı hesaplama ve Tabloya yazdırma kısımlarını oluşturuyoruz
             double dogruluk = ((double) dogruTahmin / testVerisi.size()) * 100;
             String dogrulukMetni = String.format("%.2f", dogruluk);
+            double macroPrecision =
+                    Evaluator.macroPrecision(
+                            hataMatrisi
+                    ) * 100;
+
+            double macroRecall =
+                    Evaluator.macroRecall(
+                            hataMatrisi
+                    ) * 100;
+
+            double macroF1 =
+                    Evaluator.macroF1(
+                            hataMatrisi
+                    ) * 100;
+
+            String precisionMetni =
+                    String.format("%.2f", macroPrecision);
+
+            String recallMetni =
+                    String.format("%.2f", macroRecall);
+
+            String f1Metni =
+                    String.format("%.2f", macroF1);
 
             Object[] tabloSatiri = {
-                modelAdi, 
-                parametre, 
-                "%" + egitimYuzdesi + " (" + egitimVerisi.size() + ")", 
-                egitimSuresi + " ms", 
-                tahminSuresi + " ms", 
-                dogrulukMetni
+                modelAdi,
+                parametre,
+                "%" + egitimYuzdesi
+                    + " (" + egitimVerisi.size() + ")",
+                egitimSuresi + " ms",
+                tahminSuresi + " ms",
+                dogrulukMetni,
+                precisionMetni,
+                recallMetni,
+                f1Metni
             };
             tabloModeli.addRow(tabloSatiri);
 
