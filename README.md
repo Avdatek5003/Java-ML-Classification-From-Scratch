@@ -365,7 +365,7 @@ The Java Swing interface allows users to:
 # 🧩 Project Structure
 
 ```text
-Data_Science_Project/
+Java-ML-Classification-From-Scratch/
 │
 ├── src/
 │   ├── classifier/

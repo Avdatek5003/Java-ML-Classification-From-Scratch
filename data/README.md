@@ -89,7 +89,7 @@ This keeps the source code and project methodology publicly available without as
 After obtaining an authorized copy of the dataset, the local project structure should look similar to:
 
 ```text
-Data_Science_Project/
+Java-ML-Classification-From-Scratch/
 │
 ├── MarketSalesKocaeli.csv
 ├── src/
