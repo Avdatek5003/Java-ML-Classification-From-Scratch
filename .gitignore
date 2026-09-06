@@ -17,3 +17,6 @@ Thumbs.db
 *.log
 
 .build_tmp/
+
+# Course dataset - not redistributed
+MarketSalesKocaeli.csv
