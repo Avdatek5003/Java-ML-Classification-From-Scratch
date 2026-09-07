@@ -18,26 +18,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-// Arayuz elemanlarını barındıran ana pencere sınıfımız
+//Arayuz elemanlarını barındıran ana pencere sınıfımız
 public class MainGui extends JFrame {
 
-    // Veri seti değişkenleri
-    private ArrayList<UserRecord> tumTemizVeri; //  temizlenmiş veri
+    //Veri seti değişkenleri
+    private ArrayList<UserRecord> tumTemizVeri; //temizlenmiş veri
 
-    // Arayüz bileşenleri
+    //Arayüz bileşenleri
     private JLabel etiketDosyaYolu;
     private JButton butonDosyaYukle;
     private JRadioButton radyoKNN;
-    private JRadioButton radyoKA; // Karar ağacı
+    private JRadioButton radyoKA; //Karar ağacı
     private JLabel etiketParametre;
     private JTextField metinParametre;
-    private JSlider sliderVeriOrani; // Test veri oranını belirleyen çubuk
+    private JSlider sliderVeriOrani; //Test veri oranını belirleyen çubuk
     private JButton butonCalistir;
     private JTable tabloSonuclar;
     private DefaultTableModel tabloModeli;
     private CubukGrafikPaneli grafikPaneli;
 
-    // Manuel tahmin ve hata matrisi bileşenleri
+    //Manuel tahmin ve hata matrisi bileşenleri
     private IClassifier mevcutEgitilmisModel;
     private PreProcessor mevcutPreProcessor;
     private JComboBox<String> kutuCinsiyet;
@@ -45,22 +45,22 @@ public class MainGui extends JFrame {
     private JLabel etiketManuelSonuc;
     private JButton butonManuelTahmin, butonMatrisGoster;
     
-    // Algoritmaların nerede hata yaptığını tutan tablo 
+    //Algoritmaların nerede hata yaptığını tutan tablo 
     private Map<String, Map<String, Integer>> hataMatrisi = new HashMap<>();
 
-    // Geçmiş sonuçları grafikte çizmek için liste
+    //Geçmiş sonuçları grafikte çizmek için liste
     private List<Double> dogrulukGecmisi = new ArrayList<>();
     private List<String> modelAdiGecmisi = new ArrayList<>();
 
     public MainGui() {
-        // 1. Pencere ayarları
+        //1. Pencere ayarları
         setTitle("Kocaeli Satış Verisi - ML Sınıflandırma Analizi");
         setSize(1400, 750); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
 
-        // 2. Dosya yükleme paneli
+        //2. Dosya yükleme paneli
         JPanel dosyaPaneli = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
         dosyaPaneli.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY)); 
 
@@ -72,10 +72,10 @@ public class MainGui extends JFrame {
         dosyaPaneli.add(butonDosyaYukle);
         dosyaPaneli.add(etiketDosyaYolu);
 
-        // Butona tıklandığımızda dosya secme paneli acılır
+        //Butona tıklandığımızda dosya secme paneli acılır
         butonDosyaYukle.addActionListener(e -> dosyaSec());
 
-        // Ayarlar Paneli
+        //Ayarlar Paneli
         JPanel ustPanel = new JPanel(new GridLayout(2, 1, 5, 5));
         ustPanel.setBorder(BorderFactory.createTitledBorder("Model ve Parametre Seçimi"));
 
@@ -89,7 +89,7 @@ public class MainGui extends JFrame {
         etiketParametre = new JLabel("K Değeri (Örn: 5):");
         metinParametre = new JTextField("5", 5);
 
-        // Seçilen algoritmaya göre etiket metnini güncelleriz
+        //Seçilen algoritmaya göre etiket metnini güncelleriz
         radyoKNN.addActionListener(e -> {
             etiketParametre.setText("K Değeri (Örn: 5):");
             metinParametre.setText("5");
@@ -126,14 +126,14 @@ public class MainGui extends JFrame {
         ustPanel.add(satir1);
         ustPanel.add(satir2);
 
-        // Dosya ve Ayarlar panellerini birleştiriyoruz
+        //Dosya ve Ayarlar panellerini birleştiriyoruz
         JPanel baslikPaneli = new JPanel(new BorderLayout());
         baslikPaneli.add(dosyaPaneli, BorderLayout.NORTH);
         baslikPaneli.add(ustPanel, BorderLayout.CENTER);
 
         add(baslikPaneli, BorderLayout.NORTH);
 
-        // Sonuc Tablosu
+        //Sonuc Tablosu
         String[] kolonlar = {
             "Model",
             "Parametre",
@@ -153,24 +153,24 @@ public class MainGui extends JFrame {
 
         add(tabloKaydirma, BorderLayout.CENTER);
 
-        // Custom BarPlot Grafiği
+        //Custom BarPlot Grafiği
         grafikPaneli = new CubukGrafikPaneli();
         grafikPaneli.setPreferredSize(new Dimension(850, 250));
         grafikPaneli.setBorder(BorderFactory.createTitledBorder("Doğruluk Oranı (Accuracy) Bar Plot Grafiği"));
         add(grafikPaneli, BorderLayout.SOUTH);
 
-        // 6. Canlı tahmin ve hata matrisi
+        //6. Canlı tahmin ve hata matrisi
         manuelPaneliKur();
 
-        // 7. Çalıstır butonu
+        //7. Çalıstır butonu
         butonCalistir.addActionListener(e -> testiCalistir());
 
-        // Başlangıçta varsayılan dosyayı yükle
+        //Başlangıçta varsayılan dosyayı yükle
         sessizVeriYukle("MarketSalesKocaeli.csv");
     }
 
-    // Dosya Seçme Kısmı
-    // CSV formatında dosya seçmemizi sağlar
+    //Dosya Seçme Kısmı
+    //CSV formatında dosya seçmemizi sağlar
     private void dosyaSec() {
         JFileChooser dosyaSecici = new JFileChooser();
         dosyaSecici.setDialogTitle("CSV Veri Setini Seçin");
@@ -182,7 +182,7 @@ public class MainGui extends JFrame {
             etiketDosyaYolu.setText("Yüklü Dosya: " + dosyaSecici.getSelectedFile().getName());
             uyariliVeriYukle(secilenDosyaYolu); 
             
-            // Yeni dosya yüklendiğinde eskileri temizleriz
+            //Yeni dosya yüklendiğinde eskileri temizleriz
             tabloModeli.setRowCount(0);
             dogrulukGecmisi.clear();
             modelAdiGecmisi.clear();
@@ -193,8 +193,7 @@ public class MainGui extends JFrame {
         }
     }
 
-   
-    // Manuel dosya seçiminde başarılı veya başarısız denemeleri gösteririz
+    //Manuel dosya seçiminde başarılı veya başarısız denemeleri gösteririz
     private void uyariliVeriYukle(String dosyaYolu) {
         try {
             ArrayList<UserRecord> hamVeri = DataYukle.veriYukle(dosyaYolu);
@@ -213,7 +212,7 @@ public class MainGui extends JFrame {
         }
     }
 
-    // Başlangıçta veri yükleme methodu
+    //Başlangıçta veri yükleme methodu
     private void sessizVeriYukle(String dosyaYolu) {
         try {
             ArrayList<UserRecord> hamVeri = DataYukle.veriYukle(dosyaYolu);
@@ -223,8 +222,7 @@ public class MainGui extends JFrame {
         }
     }
 
-    
-    // Arayüzün sağ tarafındaki canlı tahmin araçlarını oluşturuyoruz
+    //Arayüzün sağ tarafındaki canlı tahmin araçlarını oluşturuyoruz
     private void manuelPaneliKur() {
         JPanel manuelPanel = new JPanel(new GridLayout(8, 1, 5, 5));
         manuelPanel.setBorder(BorderFactory.createTitledBorder("Canlı Tahmin Testi"));
@@ -275,64 +273,36 @@ public class MainGui extends JFrame {
             int egitimYuzdesi = sliderVeriOrani.getValue(); 
 
             /*
-        * Orijinal temiz dataset değiştirilmez.
-        *
-        * Sabit seed kullanılması KNN ve Decision Tree karşılaştırmalarında
-        * aynı train/test split'in tekrar üretilebilmesini sağlar.
-        */
-        ArrayList<UserRecord> karistirilmisVeri =
-                new ArrayList<>(tumTemizVeri);
+             * Orijinal temiz dataset değiştirilmez.
+             *
+             * Sabit seed kullanılması KNN ve Decision Tree karşılaştırmalarında
+             * aynı train/test split'in tekrar üretilebilmesini sağlar.
+             */
+            ArrayList<UserRecord> karistirilmisVeri = new ArrayList<>(tumTemizVeri);
 
-        Collections.shuffle(
-                karistirilmisVeri,
-                new Random(42)
-        );
+            Collections.shuffle(karistirilmisVeri, new Random(42));
 
-        int bolmeIndeksi =
-                (int) (
-                        karistirilmisVeri.size()
-                        *
-                        (egitimYuzdesi / 100.0)
-                );
+            int bolmeIndeksi = (int) (karistirilmisVeri.size() * (egitimYuzdesi / 100.0));
 
-        List<UserRecord> egitimHam =
-                new ArrayList<>(
-                        karistirilmisVeri.subList(
-                                0,
-                                bolmeIndeksi
-                        )
-                );
+            List<UserRecord> egitimHam = new ArrayList<>(karistirilmisVeri.subList(0, bolmeIndeksi));
 
-        List<UserRecord> testHam =
-                new ArrayList<>(
-                        karistirilmisVeri.subList(
-                                bolmeIndeksi,
-                                karistirilmisVeri.size()
-                        )
-                );
+            List<UserRecord> testHam = new ArrayList<>(karistirilmisVeri.subList(bolmeIndeksi, karistirilmisVeri.size()));
 
-        /*
-        * Preprocessing parametreleri yalnızca training setinden öğrenilir.
-        */
-        PreProcessor preProcessor =
-                new PreProcessor();
+            /*
+             * Preprocessing parametreleri yalnızca training setinden öğrenilir.
+             */
+            PreProcessor preProcessor = new PreProcessor();
 
-        preProcessor.fit(egitimHam);
+            preProcessor.fit(egitimHam);
 
-        List<UserRecord> egitimVerisi =
-                preProcessor.transform(
-                        egitimHam
-                );
+            List<UserRecord> egitimVerisi = preProcessor.transform(egitimHam);
 
-        List<UserRecord> testVerisi =
-                preProcessor.transform(
-                        testHam
-                );
+            List<UserRecord> testVerisi = preProcessor.transform(testHam);
 
             IClassifier model;
             String modelAdi;
 
-            // Seçime göre algoritmayı oluştururuz
+            //Seçime göre algoritmayı oluştururuz
             if (radyoKNN.isSelected()) {
                 model = new KNNClassifier(parametre);
                 modelAdi = "KNN (K=" + parametre + ")";
@@ -341,12 +311,12 @@ public class MainGui extends JFrame {
                 modelAdi = "DT (Depth=" + parametre + ")";
             }
 
-            // Eğitim Süreci
+            //Eğitim Süreci
             long t1 = System.currentTimeMillis();
             model.train(egitimVerisi);
             long egitimSuresi = System.currentTimeMillis() - t1;
 
-            // Test Süreci
+            //Test Süreci
             long t2 = System.currentTimeMillis();
             int dogruTahmin = 0;
             hataMatrisi.clear(); 
@@ -359,45 +329,29 @@ public class MainGui extends JFrame {
                     dogruTahmin++;
                 }
 
-                // Hata matrisi tablosu için oyları sayarız
+                //Hata matrisi tablosu için oyları sayarız
                 hataMatrisi.putIfAbsent(gercek, new HashMap<>());
                 Map<String, Integer> satir = hataMatrisi.get(gercek);
                 satir.put(tahminEdilen, satir.getOrDefault(tahminEdilen, 0) + 1);
             }
             long tahminSuresi = System.currentTimeMillis() - t2;
 
-            // Başarı hesaplama ve Tabloya yazdırma kısımlarını oluşturuyoruz
+            //Başarı hesaplama ve Tabloya yazdırma kısımlarını oluşturuyoruz
             double dogruluk = ((double) dogruTahmin / testVerisi.size()) * 100;
             String dogrulukMetni = String.format("%.2f", dogruluk);
-            double macroPrecision =
-                    Evaluator.macroPrecision(
-                            hataMatrisi
-                    ) * 100;
+            
+            double macroPrecision = Evaluator.macroPrecision(hataMatrisi) * 100;
+            double macroRecall = Evaluator.macroRecall(hataMatrisi) * 100;
+            double macroF1 = Evaluator.macroF1(hataMatrisi) * 100;
 
-            double macroRecall =
-                    Evaluator.macroRecall(
-                            hataMatrisi
-                    ) * 100;
-
-            double macroF1 =
-                    Evaluator.macroF1(
-                            hataMatrisi
-                    ) * 100;
-
-            String precisionMetni =
-                    String.format("%.2f", macroPrecision);
-
-            String recallMetni =
-                    String.format("%.2f", macroRecall);
-
-            String f1Metni =
-                    String.format("%.2f", macroF1);
+            String precisionMetni = String.format("%.2f", macroPrecision);
+            String recallMetni = String.format("%.2f", macroRecall);
+            String f1Metni = String.format("%.2f", macroF1);
 
             Object[] tabloSatiri = {
                 modelAdi,
                 parametre,
-                "%" + egitimYuzdesi
-                    + " (" + egitimVerisi.size() + ")",
+                "%" + egitimYuzdesi + " (" + egitimVerisi.size() + ")",
                 egitimSuresi + " ms",
                 tahminSuresi + " ms",
                 dogrulukMetni,
@@ -407,12 +361,12 @@ public class MainGui extends JFrame {
             };
             tabloModeli.addRow(tabloSatiri);
 
-            // Grafiği Güncelle
+            //Grafiği Güncelle
             dogrulukGecmisi.add(dogruluk);
             modelAdiGecmisi.add(modelAdi + " (%" + egitimYuzdesi + ")");
             grafikPaneli.grafigiGuncelle(dogrulukGecmisi, modelAdiGecmisi);
 
-            // Arayüzü dışarıdan tahmin yapmak için aktifleştir
+            //Arayüzü dışarıdan tahmin yapmak için aktifleştir
             mevcutEgitilmisModel = model;
             mevcutPreProcessor = preProcessor;
             butonManuelTahmin.setEnabled(true);
@@ -423,83 +377,49 @@ public class MainGui extends JFrame {
         }
     }
 
-    // Manuel Tahmin kısmı(Dısarıdan veri girip canlı tahmin yaparız)
-
+    //Manuel Tahmin kısmı(Dısarıdan veri girip canlı tahmin yaparız)
     private void manuelTahminYap() {
+        try {
+            if (mevcutEgitilmisModel == null || mevcutPreProcessor == null) {
+                throw new IllegalStateException("Önce bir model eğitilmelidir.");
+            }
 
-    try {
+            int cinsiyet = kutuCinsiyet.getSelectedIndex();
+            double hamHarcama = Double.parseDouble(metinManuelHarcama.getText().trim());
+            String marka = metinManuelMarka.getText().trim();
 
-        if (mevcutEgitilmisModel == null
-                || mevcutPreProcessor == null) {
+            if (marka.isEmpty()) {
+                throw new IllegalArgumentException("Marka boş bırakılamaz.");
+            }
 
-            throw new IllegalStateException(
-                    "Önce bir model eğitilmelidir."
+            /*
+             * Manuel veri de yalnızca training setinden öğrenilen
+             * min/max değerleri kullanılarak normalize edilir.
+             */
+            double normalizeHarcama = mevcutPreProcessor.harcamayiNormallestir(hamHarcama);
+
+            UserRecord manuelMusteri = new UserRecord(
+                    "MANUAL",
+                    cinsiyet,
+                    normalizeHarcama,
+                    marka,
+                    ""
+            );
+
+            String sonuc = mevcutEgitilmisModel.predict(manuelMusteri);
+            etiketManuelSonuc.setText("Sonuç: " + sonuc);
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Geçerli bir harcama tutarı ve marka giriniz!",
+                    "Hata",
+                    JOptionPane.WARNING_MESSAGE
             );
         }
-
-        int cinsiyet =
-                kutuCinsiyet.getSelectedIndex();
-
-        double hamHarcama =
-                Double.parseDouble(
-                        metinManuelHarcama
-                                .getText()
-                                .trim()
-                );
-
-        String marka =
-                metinManuelMarka
-                        .getText()
-                        .trim();
-
-        if (marka.isEmpty()) {
-
-            throw new IllegalArgumentException(
-                    "Marka boş bırakılamaz."
-            );
-        }
-
-        /*
-         * Manuel veri de yalnızca training setinden öğrenilen
-         * min/max değerleri kullanılarak normalize edilir.
-         */
-        double normalizeHarcama =
-                mevcutPreProcessor
-                        .harcamayiNormallestir(
-                                hamHarcama
-                        );
-
-        UserRecord manuelMusteri =
-                new UserRecord(
-                        "MANUAL",
-                        cinsiyet,
-                        normalizeHarcama,
-                        marka,
-                        ""
-                );
-
-        String sonuc =
-                mevcutEgitilmisModel
-                        .predict(
-                                manuelMusteri
-                        );
-
-        etiketManuelSonuc.setText(
-                "Sonuç: " + sonuc
-        );
-
-    } catch (Exception ex) {
-
-        JOptionPane.showMessageDialog(
-                this,
-                "Geçerli bir harcama tutarı ve marka giriniz!",
-                "Hata",
-                JOptionPane.WARNING_MESSAGE
-        );
     }
-}
 
-    // Hata matrisi gösterimi
+    //Hata matrisi gösterimi
     // Algoritmanın hangi kategoriyi neyle karıştırdığını tablo olarak sunarız
     private void hataMatrisiniGoster() {
         if (hataMatrisi.isEmpty()) return;
@@ -576,7 +496,7 @@ public class MainGui extends JFrame {
                 int x = baslangicX + i * (cubukGenisligi + aralik);
                 int y = yukseklik - bosluk - cubukYuksekligi;
 
-                // Algoritmaya göre renk ayrımı
+                //Algoritmaya göre renk ayrımı
                 if (etiketler.get(i).contains("KNN")) {
                     g2d.setColor(new Color(51, 153, 255)); 
                 } else {
@@ -587,11 +507,11 @@ public class MainGui extends JFrame {
                 g2d.setColor(Color.DARK_GRAY);
                 g2d.drawRect(x, y, cubukGenisligi, cubukYuksekligi);
 
-                // Barın üzerine yüzde değerinin yazılması
+                //Barın üzerine yüzde değerinin yazılması
                 g2d.setFont(new Font("Arial", Font.BOLD, 12));
                 g2d.drawString(String.format("%.1f%%", oran), x + 10, y - 10);
 
-                // Barın altına modelin adını yazılması
+                //Barın altına modelin adını yazılması
                 g2d.setFont(new Font("Arial", Font.PLAIN, 10));
                 g2d.drawString(etiketler.get(i), x - 10, yukseklik - bosluk + 20);
             }
@@ -600,7 +520,7 @@ public class MainGui extends JFrame {
 
     public static void main(String[] args) {
         try {
-            // Windows Mac entegresi
+            //Windows Mac entegresi
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
             e.printStackTrace();
